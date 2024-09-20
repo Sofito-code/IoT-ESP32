@@ -1,0 +1,107 @@
+/*
+  Rui Santos
+  Complete project details at our blog.
+    - ESP32: https://RandomNerdTutorials.com/esp32-firebase-realtime-database/
+    - ESP8266: https://RandomNerdTutorials.com/esp8266-nodemcu-firebase-realtime-database/
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files.
+  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+  Based in the RTDB Basic Example by Firebase-ESP-Client library by mobizt
+  https://github.com/mobizt/Firebase-ESP-Client/blob/main/examples/RTDB/Basic/Basic.ino
+*/
+
+#include <Arduino.h>
+#if defined(ESP32)
+#include <WiFi.h>
+#elif defined(ESP8266)
+#include <ESP8266WiFi.h>
+#endif
+#include <Firebase_ESP_Client.h>
+// Provide the token generation process info.
+#include "addons/TokenHelper.h"
+// Provide the RTDB payload printing info and other helper functions.
+#include "addons/RTDBHelper.h"
+
+// Insert your network credentials
+#define WIFI_SSID "Sofi"
+#define WIFI_PASSWORD "prontotendrefibraoptica"
+
+// Insert Firebase project API Key
+#define API_KEY "AIzaSyAvJB3w_Fg-rv5agDS2pWuyaPn1P4vp8H4"
+
+// Insert RTDB URLefine the RTDB URL */
+#define DATABASE_URL "https://iot-9bc91-default-rtdb.firebaseio.com/"
+
+// Define Firebase Data object
+FirebaseData fbdo;
+
+FirebaseAuth auth;
+FirebaseConfig config;
+
+unsigned long sendDataPrevMillis = 0;
+bool signupOK = false;
+int sensorValue = 0;
+
+void setup()
+{
+  Serial.begin(115200);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Connecting to Wi-Fi");
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print(".");
+    delay(300);
+  }
+  Serial.println();
+  Serial.print("Connected with IP: ");
+  Serial.println(WiFi.localIP());
+  Serial.println();
+
+  /* Assign the api key (required) */
+  config.api_key = API_KEY;
+
+  /* Assign the RTDB URL (required) */
+  config.database_url = DATABASE_URL;
+
+  /* Sign up */
+  if (Firebase.signUp(&config, &auth, "", ""))
+  {
+    Serial.println("FB ok");
+    signupOK = true;
+  }
+  else
+  {
+    Serial.printf("%s\n", config.signer.signupError.message.c_str());
+  }
+
+  /* Assign the callback function for the long running token generation task */
+  config.token_status_callback = tokenStatusCallback; // see addons/TokenHelper.h
+
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
+}
+
+void loop()
+{
+  sensorValue = analogRead(33);
+  if (Firebase.ready() && signupOK && (millis() - sendDataPrevMillis > 1000 || sendDataPrevMillis == 0))
+  {
+    sendDataPrevMillis = millis();
+    // Write an Int number on the database path test/int
+    if (Firebase.RTDB.setInt(&fbdo, "test/rotation", sensorValue))
+    {
+      Serial.println("PASSED");
+      Serial.print("PATH: ");
+      Serial.println(fbdo.dataPath());
+      Serial.println("TYPE: ");
+      Serial.println(fbdo.dataType());
+      Serial.print("VALUE: ");
+      Serial.println(sensorValue);
+    }
+    else
+    {
+      Serial.println("FAILED");
+      Serial.print("REASON: ");
+      Serial.println(fbdo.errorReason());
+    }
+  }
+}
