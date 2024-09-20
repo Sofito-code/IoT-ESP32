@@ -26,7 +26,7 @@
 #define WIFI_PASSWORD "prontotendrefibraoptica"
 
 // Insert Firebase project API Key
-#define API_KEY "AIzaSyAvJB3w_Fg-rv5agDS2pWuyaPn1P4vp8H4"
+#define API_KEY ""
 
 // Insert RTDB URLefine the RTDB URL */
 #define DATABASE_URL "https://iot-9bc91-default-rtdb.firebaseio.com/"
